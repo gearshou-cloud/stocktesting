@@ -1,0 +1,102 @@
+# 台灣股市收盤行情
+
+更新時間: 2026-02-16 20:01:28
+
+|   證券代號 | 證券名稱                                               |     收盤價 | 漲跌幅    | 市場   |
+|-------:|:---------------------------------------------------|--------:|:-------|:-----|
+|   0050 | Yuanta/P-shares Taiwan Top 50 ETF                  |   77.2  | +2.25% | 上市   |
+|   0051 | Yuanta/P-shares Taiwan Mid-Cap 100 ETF             |  106.25 | +0.81% | 上市   |
+|   0052 | Fubon Taiwan Technology Tracker Fund               |   46.07 | +2.49% | 上市   |
+|   0053 | Yuanta/P-shares Taiwan Electronics Tech ETF        |  169.05 | +1.78% | 上市   |
+|   0055 | Yuanta/P-shares MSCI Taiwan Financials ETF         |   33.35 | +1.28% | 上市   |
+|   0056 | Yuanta/P-shares Taiwan Dividend Plus ETF           |   38.7  | +0.94% | 上市   |
+|   0057 | Fubon MSCI Taiwan ETF                              |  227    | +2.11% | 上市   |
+| 006208 | Fubon FTSE TWSE Taiwan 50 ETF                      |  178.65 | +2.20% | 上市   |
+|   1101 | TCC Group Holdings Co., Ltd.                       |   25.8  | +1.18% | 上市   |
+|   1102 | Asia Cement Corporation                            |   35.65 | +0.71% | 上市   |
+|   1216 | Uni-President Enterprises Corp.                    |   73.4  | +0.55% | 上市   |
+|   1301 | Formosa Plastics Corporation                       |   46.5  | +2.42% | 上市   |
+|   1303 | Nan Ya Plastics Corporation                        |   78.8  | +8.24% | 上市   |
+|   1326 | Formosa Chemicals & Fibre Corporation              |   42.25 | +3.68% | 上市   |
+|   1402 | Far Eastern New Century Corporation                |   28.4  | +1.43% | 上市   |
+|   1590 | Airtac International Group                         | 1200    | -2.44% | 上市   |
+|   2002 | China Steel Corporation                            |   20.9  | +1.95% | 上市   |
+|   2105 | Cheng Shin Rubber Ind. Co., Ltd.                   |   30.85 | +1.98% | 上市   |
+|   2201 | Yulon Motor Company Ltd.                           |   30.65 | -0.33% | 上市   |
+|   2207 | Hotai Motor Co.,Ltd.                               |  549    | +3.00% | 上市   |
+|   2301 | Lite-On Technology Corporation                     |  179.5  | +1.13% | 上市   |
+|   2303 | United Microelectronics Corporation                |   62.8  | +0.64% | 上市   |
+|   2308 | Delta Electronics, Inc.                            | 1260    | +6.33% | 上市   |
+|   2317 | Hon Hai Precision Industry Co., Ltd.               |  227    | +2.71% | 上市   |
+|   2324 | Compal Electronics, Inc.                           |   30.6  | +0.00% | 上市   |
+|   2327 | Yageo Corporation                                  |  256    | +0.79% | 上市   |
+|   2330 | Taiwan Semiconductor Manufacturing Company Limited | 1915    | +1.86% | 上市   |
+|   2344 | Winbond Electronics Corporation                    |  105.5  | +1.93% | 上市   |
+|   2345 | Accton Technology Corporation                      | 1450    | +4.32% | 上市   |
+|   2347 | Synnex Technology International Corporation        |   68.7  | +1.03% | 上市   |
+|   2353 | Acer Incorporated                                  |   27.1  | +0.18% | 上市   |
+|   2354 | Foxconn Technology Co., Ltd.                       |   58.7  | +1.38% | 上市   |
+|   2357 | ASUSTeK Computer Inc.                              |  523    | -0.57% | 上市   |
+|   2360 | Chroma ATE Inc.                                    | 1050    | +0.96% | 上市   |
+|   2371 | Tatung Co., Ltd.                                   |   36.8  | +0.41% | 上市   |
+|   2379 | Realtek Semiconductor Corp.                        |  476    | -0.52% | 上市   |
+|   2382 | Quanta Computer Inc.                               |  286    | +0.35% | 上市   |
+|   2385 | Chicony Electronics Co., Ltd.                      |  119.5  | -0.42% | 上市   |
+|   2395 | Advantech Co., Ltd.                                |  305    | +2.52% | 上市   |
+|   2408 | Nanya Technology Corporation                       |  278    | +2.58% | 上市   |
+|   2409 | AUO Corporation                                    |   16.15 | +9.49% | 上市   |
+|   2412 | Chunghwa Telecom Co., Ltd.                         |  133    | +0.38% | 上市   |
+|   2454 | MediaTek Inc.                                      | 1855    | +0.54% | 上市   |
+|   2474 | Catcher Technology Co., Ltd.                       |  192.5  | -0.52% | 上市   |
+|   2492 | Walsin Technology Corporation                      |  123.5  | +0.00% | 上市   |
+|   2498 | HTC Corporation                                    |   44.25 | -1.01% | 上市   |
+|   2603 | Evergreen Marine Corporation (Taiwan) Ltd.         |  186    | +0.00% | 上市   |
+|   2609 | Yang Ming Marine Transport Corporation             |   53.3  | +0.95% | 上市   |
+|   2610 | China Airlines, Ltd.                               |   22.7  | -1.09% | 上市   |
+|   2615 | Wan Hai Lines Ltd.                                 |   75    | +0.67% | 上市   |
+|   2618 | EVA Airways Corp.                                  |   38.85 | -0.38% | 上市   |
+|   2801 | Chang Hwa Commercial Bank, Ltd.                    |   20.75 | +0.48% | 上市   |
+|   2880 | Hua Nan Financial Holdings Co., Ltd.               |   34.6  | +1.32% | 上市   |
+|   2881 | Fubon Financial Holding Co., Ltd.                  |   95.2  | +0.74% | 上市   |
+|   2882 | Cathay Financial Holding Co., Ltd.                 |   78.8  | +1.16% | 上市   |
+|   2883 | KGI Financial Holding Co., Ltd.                    |   19.25 | +1.85% | 上市   |
+|   2884 | E.SUN Financial Holding Company, Ltd.              |   34.15 | +1.04% | 上市   |
+|   2885 | Yuanta Financial Holding Co., Ltd.                 |   44.75 | +0.90% | 上市   |
+|   2886 | Mega Financial Holding Co., Ltd.                   |   40.05 | +0.63% | 上市   |
+|   2887 | TS Financial Holding Co., Ltd.                     |   24    | +0.21% | 上市   |
+|   2890 | SinoPac Financial Holdings Company Limited         |   31.1  | +2.47% | 上市   |
+|   2891 | CTBC Financial Holding Co., Ltd.                   |   52.2  | +0.97% | 上市   |
+|   2892 | First Financial Holding Co., Ltd.                  |   29.45 | +0.68% | 上市   |
+|   2912 | President Chain Store Corporation                  |  223    | +0.22% | 上市   |
+|   3008 | LARGAN Precision Co.,Ltd                           | 2290    | -1.51% | 上市   |
+|   3034 | Novatek Microelectronics Corp.                     |  375    | -0.53% | 上市   |
+|   3037 | Unimicron Technology Corp.                         |  369    | -0.67% | 上市   |
+|   3045 | Taiwan Mobile Co., Ltd.                            |  106.5  | +0.95% | 上市   |
+|   3231 | Wistron Corporation                                |  131.5  | +1.54% | 上市   |
+|   3443 | Global Unichip Corp.                               | 2475    | -1.20% | 上櫃   |
+|   3481 | Innolux Corporation                                |   21.95 | +4.28% | 上市   |
+|   3661 | Alchip Technologies, Limited                       | 3380    | +2.42% | 上櫃   |
+|   3711 | ASE Technology Holding Co., Ltd.                   |  354.5  | +3.05% | 上市   |
+|   4904 | Far EasTone Telecommunications Co., Ltd.           |   91.9  | -0.11% | 上市   |
+|   4938 | Pegatron Corporation                               |   70.5  | -0.28% | 上市   |
+|   4968 | RichWave Technology Corporation                    |  118.5  | -1.66% | 上櫃   |
+|   5871 | Chailease Holding Company Limited                  |  107    | +1.42% | 上市   |
+|   5876 | The Shanghai Commercial & Savings Bank, Ltd.       |   40.15 | -0.86% | 上市   |
+|   5880 | Taiwan Cooperative Financial Holding Co., Ltd.     |   23.9  | +0.00% | 上市   |
+|   6005 | Capital Securities Corporation                     |   29.3  | +1.74% | 上市   |
+|   6415 | Silergy Corp.                                      |  280    | +5.07% | 上市   |
+|   6446 | PharmaEssentia Corporation                         |  725    | -0.41% | 上櫃   |
+|   6505 | Formosa Petrochemical Corporation                  |   49.75 | +1.53% | 上市   |
+|   6669 | Wiwynn Corporation                                 | 3740    | +1.49% | 上櫃   |
+|   6770 | Powerchip Semiconductor Manufacturing Corp.        |   63.1  | -1.87% | 上市   |
+|   8046 | Nan Ya Printed Circuit Board Corporation           |  416    | +1.59% | 上櫃   |
+|   8131 | Formosa Advanced Technologies Co., Ltd.            |   69.3  | +5.96% | 上櫃   |
+|   8150 | ChipMOS TECHNOLOGIES INC.                          |   53.4  | +0.75% | 上櫃   |
+|   8271 | Apacer Technology Inc.                             |  118    | +0.85% | 上櫃   |
+|   8454 | momo.com Inc.                                      |  190    | +1.06% | 上櫃   |
+|   8996 | Kaori Heat Treatment Co., Ltd.                     |  906    | -2.69% | 上櫃   |
+|   9904 | Pou Chen Corporation                               |   30.85 | -0.16% | 上市   |
+|   9910 | Feng Tay Enterprises Co., Ltd.                     |   92.3  | -0.22% | 上市   |
+|   9921 | Giant Manufacturing Co., Ltd.                      |   87.6  | +0.81% | 上市   |
+|   9933 | CTCI Corporation                                   |   31    | +0.16% | 上市   |
+|   9945 | Ruentex Development Co.,Ltd.                       |   29.15 | +0.17% | 上市   |

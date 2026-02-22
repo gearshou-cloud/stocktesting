@@ -1,0 +1,11 @@
+flask
+flask-cors
+yfinance
+pandas
+requests
+urllib3
+gunicorn
+line-bot-sdk
+flask-apscheduler
+python-dotenv
+streamlit

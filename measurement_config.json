@@ -1,0 +1,52 @@
+[
+  {
+    "source": "C1",
+    "measurements": "RTime",
+    "track": true
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "High",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  },
+  {
+    "source": "C1",
+    "measurements": "",
+    "track": false
+  }
+]

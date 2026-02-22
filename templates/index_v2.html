@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台股強勢股篩選器 | Taiwan Stock Screener</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ range(1, 9999) | random }}">
+    <script src="{{ url_for('static', filename='lightweight-charts.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='search_charts.js') }}?v={{ range(1, 9999) | random }}"></script>
+    <script>
+        // Check if library loaded
+        window.addEventListener('load', function () {
+            if (typeof LightweightCharts === 'undefined') {
+                console.error('LightweightCharts library failed to load!');
+                alert('圖表函式庫載入失敗，請檢查網絡或刷新頁面。');
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔥 台股強勢股篩選器</h1>
+            <p class="subtitle">Taiwan Stock Screener - Outperforming the Market</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation" id="tab-navigation">
+            <button class="tab-button active" onclick="switchTab('outperformers')">
+                🏆 優於大盤
+            </button>
+            <button class="tab-button" onclick="switchTab('listed-ranking')">
+                📊 上市排名
+            </button>
+            <button class="tab-button" onclick="switchTab('otc-ranking')">
+                📈 上櫃排名
+            </button>
+            <button class="tab-button" onclick="switchTab('strong-stocks')">
+                💪 強勢選股
+            </button>
+            <button class="tab-button" onclick="switchTab('smart-picks')">
+                🤖 智慧推薦
+            </button>
+            <button class="tab-button" onclick="switchTab('search')">
+                🔍 股票查詢
+            </button>
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="filter-panel" id="filter-panel">
+            <h2>📊 篩選條件 | Filter Criteria</h2>
+
+            <div class="filter-group">
+                <label for="min-price-input">
+                    💰 最低股價 | Min Price (TWD)
+                </label>
+                <input type="number" id="min-price-input" min="0" max="10000" value="50" step="1">
+            </div>
+
+            <div class="filter-group">
+                <label for="max-price-input">
+                    💰 最高股價 | Max Price (TWD)
+                </label>
+                <input type="number" id="max-price-input" min="0" max="10000" value="200" step="1">
+            </div>
+
+            <div class="filter-group">
+                <label for="market-cap-input">
+                    📈 最小市值 | Min Market Cap (億 TWD)
+                </label>
+                <input type="number" id="market-cap-input" min="0" max="100000" value="100" step="10">
+                <div class="filter-checkbox">
+                    <label>
+                        <input type="checkbox" id="enable-market-cap" checked>
+                        啟用市值篩選 | Enable Market Cap Filter
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="min-volume-input">
+                    📊 最低成交量 | Min Volume (張 / 1000 shares)
+                </label>
+                <input type="number" id="min-volume-input" min="0" max="1000000" value="1000" step="100">
+            </div>
+
+            <div class="filter-group">
+                <div class="filter-checkbox">
+                    <label>
+                        <input type="checkbox" id="gap-up-only">
+                        僅顯示開高 (Gap Up - 開盤 > 昨收)
+                    </label>
+                </div>
+            </div>
+
+            <button class="filter-button" id="filter-btn" onclick="filterStocks()">
+                🔍 篩選股票 | Filter Stocks
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在分析股票數據...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="error-message" style="display: none;"></div>
+
+        <!-- Market Indices -->
+        <div class="indices-panel" id="indices-panel" style="display: none;">
+            <div class="index-card">
+                <div class="index-name">📊 加權指數 TAIEX</div>
+                <div class="index-value" id="taiex-value">--</div>
+                <div class="index-change" id="taiex-change">--%</div>
+            </div>
+            <div class="index-card">
+                <div class="index-name">📈 上櫃指數 OTC</div>
+                <div class="index-value" id="otc-value">--</div>
+                <div class="index-change" id="otc-change">--%</div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-item">
+                <span class="stat-label">分析股票</span>
+                <span class="stat-value" id="total-analyzed">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">符合條件</span>
+                <span class="stat-value" id="total-filtered">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">上市優於大盤</span>
+                <span class="stat-value" id="listed-outperformers">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">上櫃優於大盤</span>
+                <span class="stat-value" id="otc-outperformers">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">查詢時間</span>
+                <span class="stat-value" id="timestamp">--:--:--</span>
+            </div>
+        </div>
+
+        <!-- Stock Search Panel -->
+        <div class="search-panel" id="search-panel" style="display: none;">
+            <h2>🔍 股票查詢 | Stock Search</h2>
+            <div class="search-input-group">
+                <input type="text" id="stock-search-input" placeholder="輸入股票代碼或名稱 (例如: 2330 或 台積電)" />
+                <button class="search-button" onclick="searchStock()">搜尋</button>
+            </div>
+            <div id="search-results"></div>
+        </div>
+
+        <!-- 強勢選股 Panel -->
+        <div id="strong-stocks-panel" style="display: none;">
+            <div
+                style="background: linear-gradient(135deg,#1a237e,#283593); color:white; border-radius:12px; padding:20px; margin-bottom:20px;">
+                <h2 style="margin:0 0 6px 0; font-size:1.3em;">💪 強勢選股</h2>
+                <p style="margin:0; font-size:0.9em; opacity:0.85;">
+                    以「優於大盤 + 篩選條件」為基礎，再疊加技術分析條件，挑出當日最強勢的股票
+                </p>
+            </div>
+            <!-- 條件說明 -->
+            <div
+                style="background:#f3f4ff; border:1px solid #c5cae9; border-radius:8px; padding:14px; margin-bottom:18px; font-size:0.88em; line-height:1.8;">
+                <strong>📋 已啟用條件（AND 關係，全部需符合）：</strong><br>
+                <span id="strong-conditions-list">
+                    ✅ 優於大盤（個股漲幅 &gt; 指數漲幅）<br>
+                    ✅ 創 5 日新高（今日收盤 ≥ 前 5 日最高收盤）
+                </span>
+            </div>
+            <div style="text-align:center; margin-bottom:20px;">
+                <button class="filter-button" onclick="getStrongStocks()"
+                    style="background:linear-gradient(135deg,#1a237e,#3949ab); font-size:1em; padding:12px 32px;">
+                    🚀 開始篩選強勢股
+                </button>
+            </div>
+            <div id="strong-stocks-loading" style="display:none; text-align:center; padding:30px;">
+                <div class="spinner" style="border-top-color:#1a237e; margin:0 auto 15px auto;"></div>
+                <p style="color:#1a237e;">正在批次下載 K 線並分析技術指標...</p>
+                <p style="font-size:0.85em; color:#999;">通常需要 10-30 秒</p>
+            </div>
+            <div id="strong-stocks-results"></div>
+        </div>
+
+        <!-- Smart Picks Panel -->
+        <div class="smart-picks-panel" id="smart-picks-panel" style="display: none;">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <h2 style="color: #2e7d32;">🤖 AI 智慧選股推薦</h2>
+                <p style="color: #666;">基於動能、均線排列與 RSI 指標的綜合分析</p>
+                <div
+                    style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 0.9em; text-align: left;">
+                    <strong>🎯 篩選策略：</strong><br>
+                    1. <strong>多頭排列</strong>：股價 > MA5 > MA20 (短中長期趨勢向上)<br>
+                    2. <strong>RSI 強勢</strong>：RSI 位於 55-80 之間 (強勢但不至於過熱)<br>
+                    3. <strong>動能爆發</strong>：成交量放大且當日漲幅優於大盤
+                </div>
+                <button class="filter-button" onclick="getSmartRecommendations()"
+                    style="background: #2e7d32; margin-top: 10px;">
+                    🚀 開始分析與推薦
+                </button>
+            </div>
+            <div id="smart-picks-loading" style="display: none; text-align: center; padding: 30px;">
+                <div class="spinner" style="border-top-color: #2e7d32; margin: 0 auto 15px auto;"></div>
+                <p style="color: #2e7d32;">正在進行深度技術分析...</p>
+                <p style="font-size: 0.85em; color: #999;">可能需要 15-30 秒來分析歷史數據</p>
+            </div>
+            <div id="smart-picks-results"></div>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        // Enable/disable market cap filter controls
+        const enableMarketCapCheckbox = document.getElementById('enable-market-cap');
+        const marketCapInput = document.getElementById('market-cap-input');
+
+        enableMarketCapCheckbox.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            marketCapInput.disabled = !enabled;
+            marketCapInput.style.opacity = enabled ? '1' : '0.5';
+        });
+
+        async function filterStocks() {
+            const minPrice = parseFloat(document.getElementById('min-price-input').value);
+            const maxPrice = parseFloat(document.getElementById('max-price-input').value);
+            const minMarketCap = parseFloat(document.getElementById('market-cap-input').value);
+            const enableMarketCap = document.getElementById('enable-market-cap').checked;
+            const gapUpOnly = document.getElementById('gap-up-only').checked;
+
+            // Validation
+            if (minPrice >= maxPrice) {
+                showError('最高股價必須大於最低股價');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('stats').style.display = 'none';
+            document.getElementById('indices-panel').style.display = 'none';
+            document.getElementById('filter-btn').disabled = true;
+
+            try {
+                const response = await fetch('/api/screen', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        min_price: minPrice,
+                        max_price: maxPrice,
+                        min_market_cap: enableMarketCap ? minMarketCap : 0,
+                        enable_market_cap: enableMarketCap,
+                        min_volume: parseFloat(document.getElementById('min-volume-input').value),
+                        gap_up_only: gapUpOnly
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '篩選失敗');
+                }
+
+                displayResults(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('filter-btn').disabled = false;
+            }
+        }
+
+        let currentData = null;
+        let currentTab = 'outperformers';
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+
+            // Update button states
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Redisplay results with current tab
+            if (currentData) {
+                displayResults(currentData);
+            }
+        }
+
+        function displayResults(data) {
+            currentData = data;
+            const resultsDiv = document.getElementById('results');
+            const statsDiv = document.getElementById('stats');
+            const indicesPanel = document.getElementById('indices-panel');
+
+            // Display indices
+            if (data.indices) {
+                const taiex = data.indices.taiex;
+                const otc = data.indices.otc;
+
+                document.getElementById('taiex-value').textContent = taiex.value.toFixed(2);
+                document.getElementById('otc-value').textContent = otc.value.toFixed(2);
+
+                const taiexChangeEl = document.getElementById('taiex-change');
+                const otcChangeEl = document.getElementById('otc-change');
+
+                taiexChangeEl.textContent = (taiex.change_pct >= 0 ? '+' : '') + taiex.change_pct.toFixed(2) + '%';
+                taiexChangeEl.className = 'index-change ' + (taiex.change_pct >= 0 ? 'positive' : 'negative');
+
+                otcChangeEl.textContent = (otc.change_pct >= 0 ? '+' : '') + otc.change_pct.toFixed(2) + '%';
+                otcChangeEl.className = 'index-change ' + (otc.change_pct >= 0 ? 'positive' : 'negative');
+
+                indicesPanel.style.display = 'flex';
+            }
+
+            // Update stats
+            document.getElementById('total-analyzed').textContent = data.stats.total_analyzed;
+            document.getElementById('total-filtered').textContent = data.stats.total_filtered;
+            document.getElementById('listed-outperformers').textContent = data.stats.listed_outperformers;
+            document.getElementById('otc-outperformers').textContent = data.stats.otc_outperformers;
+            document.getElementById('timestamp').textContent = data.timestamp;
+            statsDiv.style.display = 'flex';
+
+            // Show tab navigation
+            const tabNavigation = document.getElementById('tab-navigation');
+            tabNavigation.style.display = 'flex';
+
+            // Clear results
+            resultsDiv.innerHTML = '';
+
+            // Display based on current tab
+            if (currentTab === 'outperformers') {
+                displayOutperformers(resultsDiv, data);
+            } else if (currentTab === 'listed-ranking') {
+                displayRanking(resultsDiv, data.listed_all, '上市股票排名', data.indices.taiex.change_pct);
+            } else if (currentTab === 'otc-ranking') {
+                displayRanking(resultsDiv, data.otc_all, '上櫃股票排名', data.indices.otc.change_pct);
+            }
+        }
+
+        function displayOutperformers(resultsDiv, data) {
+            // Display listed stocks table
+            if (data.listed_stocks && data.listed_stocks.length > 0) {
+                const listedSection = document.createElement('div');
+                listedSection.className = 'stock-section';
+                listedSection.innerHTML = '<h2>🏆 上市強勢股 (優於加權指數)</h2>';
+
+                const table = createStockTable(data.listed_stocks, data.indices.taiex.change_pct);
+                listedSection.appendChild(table);
+                resultsDiv.appendChild(listedSection);
+            }
+
+            // Display OTC stocks table
+            if (data.otc_stocks && data.otc_stocks.length > 0) {
+                const otcSection = document.createElement('div');
+                otcSection.className = 'stock-section';
+                otcSection.innerHTML = '<h2>🏆 上櫃強勢股 (優於上櫃指數)</h2>';
+
+                const table = createStockTable(data.otc_stocks, data.indices.otc.change_pct);
+                otcSection.appendChild(table);
+                resultsDiv.appendChild(otcSection);
+            }
+
+            // No results
+            if ((!data.listed_stocks || data.listed_stocks.length === 0) &&
+                (!data.otc_stocks || data.otc_stocks.length === 0)) {
+                resultsDiv.innerHTML = '<div class="no-results">❌ 沒有優於大盤的股票</div>';
+            }
+        }
+
+        function displayRanking(resultsDiv, stocks, title, indexChange) {
+            if (!stocks || stocks.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">❌ 沒有符合條件的股票</div>';
+                return;
+            }
+
+            const section = document.createElement('div');
+            section.className = 'stock-section';
+            section.innerHTML = `<h2>📊 ${title}</h2>`;
+
+            const table = createStockTable(stocks, indexChange, true);
+            section.appendChild(table);
+            resultsDiv.appendChild(section);
+        }
+
+        function createStockTable(stocks, indexChange, showRanking = false) {
+            const table = document.createElement('table');
+            table.className = 'stock-table';
+
+            // Table header
+            const headerHtml = showRanking
+                ? `<thead><tr><th>排名</th><th>代號</th><th>公司名稱</th><th>漲跌幅度</th></tr></thead>`
+                : `<thead><tr><th>代號</th><th>公司名稱</th><th>漲跌幅度</th></tr></thead>`;
+
+            table.innerHTML = headerHtml + '<tbody id="stock-tbody"></tbody>';
+
+            const tbody = table.querySelector('#stock-tbody');
+
+            stocks.forEach((stock, index) => {
+                const row = document.createElement('tr');
+                row.className = 'stock-row';
+                row.onclick = () => toggleStockDetails(row, stock, indexChange);
+
+                const changeClass = stock.daily_change_pct >= 0 ? 'positive' : 'negative';
+                const changeSymbol = stock.daily_change_pct >= 0 ? '+' : '';
+
+                const rankingCell = showRanking
+                    ? `<td class="stock-rank">${index + 1}</td>`
+                    : '';
+
+                row.innerHTML = `
+                    ${rankingCell}
+                    <td class="stock-code">${stock.symbol}</td>
+                    <td class="stock-name">${stock.name}</td>
+                    <td class="stock-change ${changeClass}">${changeSymbol}${stock.daily_change_pct.toFixed(2)}%</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+
+            return table;
+        }
+
+        function toggleStockDetails(row, stock, indexChange) {
+            const existingDetails = row.nextElementSibling;
+
+            // If details already shown, hide them
+            if (existingDetails && existingDetails.classList.contains('stock-details-row')) {
+                existingDetails.remove();
+                row.classList.remove('expanded');
+                return;
+            }
+
+            // Create details row
+            const detailsRow = document.createElement('tr');
+            detailsRow.className = 'stock-details-row';
+
+            const outperformance = stock.daily_change_pct - indexChange;
+            const changeClass = stock.daily_change_pct >= 0 ? 'positive' : 'negative';
+            const changeSymbol = stock.daily_change_pct >= 0 ? '+' : '';
+
+            detailsRow.innerHTML = `
+                <td colspan="3">
+                    <div class="stock-details-content">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">現價</span>
+                                <span class="detail-value">${stock.current_price.toFixed(2)} TWD</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">漲跌幅</span>
+                                <span class="detail-value ${changeClass}">${changeSymbol}${stock.daily_change_pct.toFixed(2)}%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">優於大盤</span>
+                                <span class="detail-value outperformance">+${outperformance.toFixed(2)}%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">成交量</span>
+                                <span class="detail-value">${stock.volume.toLocaleString()} 股</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">市值</span>
+                                <span class="detail-value">${(stock.market_cap / 1e8).toFixed(2)} 億</span>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            `;
+
+            row.classList.add('expanded');
+            row.after(detailsRow);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Stock search functionality
+        async function searchStock() {
+            const query = document.getElementById('stock-search-input').value.trim();
+            const searchResults = document.getElementById('search-results');
+
+            if (!query) {
+                searchResults.innerHTML = '<div class="no-results">❌ 請輸入股票代碼或名稱</div>';
+                return;
+            }
+
+            searchResults.innerHTML = '<div style="text-align: center; padding: 20px;">🔍 搜尋中...</div>';
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '搜尋失敗');
+                }
+
+                displaySearchResults(data);
+            } catch (error) {
+                searchResults.innerHTML = `<div class="no-results">❌ ${error.message}</div>`;
+            }
+        }
+
+        // displaySearchResults, drawCandlestickChart, drawVolumeChart 
+        // are now loaded from search_charts.js
+
+        // Update switchTab to handle search
+        // Update switchTab to handle search, smart picks, and filter visibility
+        const originalSwitchTab = switchTab;
+        switchTab = function (tabName) {
+            currentTab = tabName;
+
+            // Update button states
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Find the button that was clicked or corresponds to the tabName
+            const targetBtn = document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+
+            // Handle Filter Panel visibility
+            const filterPanel = document.getElementById('filter-panel');
+            const indicesPanel = document.getElementById('indices-panel');
+            const statsDiv = document.getElementById('stats');
+            const resultsDiv = document.getElementById('results');
+            const smartPicksPanel = document.getElementById('smart-picks-panel');
+            const strongStocksPanel = document.getElementById('strong-stocks-panel');
+            const searchPanel = document.getElementById('search-panel');
+
+            // Reset all panels
+            filterPanel.style.display = 'none';
+            resultsDiv.style.display = 'none';
+            smartPicksPanel.style.display = 'none';
+            strongStocksPanel.style.display = 'none';
+            searchPanel.style.display = 'none';
+
+            if (tabName === 'outperformers') {
+                filterPanel.style.display = 'block';
+                resultsDiv.style.display = 'block';
+                if (currentData) {
+                    indicesPanel.style.display = 'flex';
+                    statsDiv.style.display = 'flex';
+                    displayResults(currentData);
+                }
+            } else if (tabName === 'listed-ranking' || tabName === 'otc-ranking') {
+                resultsDiv.style.display = 'block';
+                // Show indices/stats for context
+                if (currentData) {
+                    indicesPanel.style.display = 'flex';
+                    statsDiv.style.display = 'flex';
+                    displayResults(currentData);
+                }
+            } else if (tabName === 'strong-stocks') {
+                strongStocksPanel.style.display = 'block';
+                indicesPanel.style.display = 'none';
+                statsDiv.style.display = 'none';
+            } else if (tabName === 'smart-picks') {
+                smartPicksPanel.style.display = 'block';
+                // Hide context panels to focus on smart picks
+                indicesPanel.style.display = 'none';
+                statsDiv.style.display = 'none';
+            } else if (tabName === 'search') {
+                searchPanel.style.display = 'block';
+                indicesPanel.style.display = 'none';
+                statsDiv.style.display = 'none';
+            }
+        };
+
+        // Smart Recommendation Logic
+        async function getSmartRecommendations() {
+            const loading = document.getElementById('smart-picks-loading');
+            const resultsDiv = document.getElementById('smart-picks-results');
+            const btn = document.querySelector('.smart-picks-panel button');
+
+            // 讀取當前篩選器參數
+            const minPrice = document.getElementById('min-price-input').value;
+            const maxPrice = document.getElementById('max-price-input').value;
+            const minVolume = document.getElementById('min-volume-input').value;
+
+            loading.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            try {
+                const response = await fetch('/api/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        min_price: minPrice,
+                        max_price: maxPrice,
+                        min_volume: minVolume
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success && data.recommendations && data.recommendations.length > 0) {
+                    let html = `<div style="overflow-x:auto; margin-top:20px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:0.9em; background:white; border-radius:8px; overflow:hidden;">
+                            <thead>
+                                <tr style="background:#f5f5f5; border-bottom:2px solid #ddd;">
+                                    <th style="padding:12px 10px; text-align:left;">代碼/名稱</th>
+                                    <th style="padding:12px 10px; text-align:right;">現價</th>
+                                    <th style="padding:12px 10px; text-align:right;">漲跌</th>
+                                    <th style="padding:12px 10px; text-align:right; color:#1a237e;">優於大盤</th>
+                                    <th style="padding:12px 10px; text-align:left;">AI 推薦原因</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                    data.recommendations.forEach(s => {
+                        const chgColor = s.change_pct >= 0 ? '#c62828' : '#00695c';
+                        const alphaColor = (s.alpha || 0) >= 0 ? '#1a237e' : '#555';
+                        const tags = s.reasons.map(r =>
+                            `<span style="display:inline-block; background:#e8f5e9; color:#2e7d32; padding:2px 8px; border-radius:4px; font-size:0.82em; margin:2px; border:1px solid #c8e6c9;">${r}</span>`
+                        ).join('');
+
+                        html += `<tr style="border-bottom:1px solid #eee;">
+                            <td style="padding:12px 10px;">
+                                <div style="font-weight:bold; color:#1565c0; font-size:1.1em;">${s.code}</div>
+                                <div style="font-size:0.85em; color:#666;">${s.name}</div>
+                            </td>
+                            <td style="padding:12px 10px; text-align:right; font-weight:bold;">${s.price}</td>
+                            <td style="padding:12px 10px; text-align:right; color:${chgColor}; font-weight:bold;">${s.change_pct}%</td>
+                            <td style="padding:12px 10px; text-align:right; color:${alphaColor}; font-weight:bold;">${s.alpha > 0 ? '+' : ''}${s.alpha}%</td>
+                            <td style="padding:12px 10px;">${tags}</td>
+                        </tr>`;
+                    });
+
+                    html += '</tbody></table></div>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<div style="text-align:center; padding:30px; color:#666;">😕 目前沒有符合 AI 深度掃描標準的股票，建議調整篩選條件。</div>';
+                }
+            } catch (err) {
+                resultsDiv.innerHTML = `<div class="error-message" style="display:block">❌ 載入失敗: ${err.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
+        // ── 強勢選股 ──────────────────────────────
+        async function getStrongStocks() {
+            const loading = document.getElementById('strong-stocks-loading');
+            const resultsDiv = document.getElementById('strong-stocks-results');
+            const btn = document.querySelector('#strong-stocks-panel button');
+
+            loading.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+
+            // 取得目前篩選面板的參數值
+            const payload = {
+                min_price: parseFloat(document.getElementById('min-price-input').value),
+                max_price: parseFloat(document.getElementById('max-price-input').value),
+                min_market_cap: parseFloat(document.getElementById('market-cap-input').value),
+                enable_market_cap: document.getElementById('enable-market-cap').checked,
+                min_volume: parseFloat(document.getElementById('min-volume-input').value),
+                gap_up_only: document.getElementById('gap-up-only').checked,
+            };
+
+            try {
+                const res = await fetch('/api/strong', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || '未知錯誤');
+                displayStrongStocks(data);
+            } catch (err) {
+                resultsDiv.innerHTML = `<div class="error-message" style="display:block">❌ 錯誤：${err.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
+        function displayStrongStocks(data) {
+            const div = document.getElementById('strong-stocks-results');
+
+            if (!data.stocks || data.stocks.length === 0) {
+                div.innerHTML = '<div class="no-results">😕 今日沒有同時符合所有條件的強勢股</div>';
+                return;
+            }
+
+            let html = `<p style="color:#555; font-size:0.88em; margin-bottom:12px;">
+                    共篩出 <strong>${data.stocks.length}</strong> 支強勢股（依 <strong>強勢天數</strong> 排序，越多越前面）
+            </p>
+            <table style="width:100%; border-collapse:collapse; font-size:0.9em; background:white;">
+                <thead>
+                    <tr style="background:#e8eaf6; color:#1a237e;">
+                        <th style="padding:10px 8px; text-align:left;">代碼</th>
+                        <th style="padding:10px 8px; text-align:left;">名稱</th>
+                        <th style="padding:10px 8px; text-align:right;">強勢天數</th>
+                        <th style="padding:10px 8px; text-align:right;">股價</th>
+                        <th style="padding:10px 8px; text-align:right;">漲跌幅</th>
+                        <th style="padding:10px 8px; text-align:right;">成交量(張)</th>
+                        <th style="padding:10px 8px; text-align:left;">市場</th>
+                        <th style="padding:10px 8px; text-align:left;">詳細說明</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            data.stocks.forEach((s, i) => {
+                const bg = i % 2 === 0 ? '#fff' : '#f9f9ff';
+                const chg = parseFloat(s.change_pct);
+                const chgColor = chg >= 0 ? '#c62828' : '#00695c';
+                const chgText = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+                const vol = Math.round(s.volume / 1000).toLocaleString();
+                const mkt = s.market === 'LISTED' ? '上市' : '上櫃';
+                const tags = s.reasons.map(r =>
+                    `<span style="display:inline-block;background:#e8eaf6;color:#1a237e; padding:2px 8px;border-radius:10px;font-size:0.8em;margin:1px;">${r}</span>`
+                ).join('');
+
+                html += `<tr style="background:${bg}; border-bottom:1px solid #eee;">
+                    <td style="padding:9px 8px; font-weight:bold; color:#1565c0;">${s.code}</td>
+                    <td style="padding:9px 8px;">${s.name}</td>
+                    <td style="padding:9px 8px; text-align:right; font-weight:bold; color:#d81b60; font-size:1.1em;">${s.score} 天</td>
+                    <td style="padding:9px 8px; text-align:right;">${s.price}</td>
+                    <td style="padding:9px 8px; text-align:right; font-weight:bold; color:${chgColor};">${chgText}</td>
+                    <td style="padding:9px 8px; text-align:right;">${vol}</td>
+                    <td style="padding:9px 8px;">${mkt}</td>
+                    <td style="padding:9px 8px;">${tags}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            div.innerHTML = html;
+        }
+
+        // Initialize default view
+        document.addEventListener('DOMContentLoaded', () => {
+            // Show tab navigation by default now that structure changed
+            document.getElementById('tab-navigation').style.display = 'flex';
+
+            // Auto-load data on startup
+            console.log("Auto-loading stock data...");
+            filterStocks();
+        });
+    </script>
+    <script src="{{ url_for('static', filename='search_charts.js') }}"></script>
+</body>
+
+</html>
