@@ -301,58 +301,79 @@ def filter_and_rank_stocks(min_price, max_price, min_market_cap, min_volume_lots
         }
     }
 
+def fetch_realtime_prices(stocks):
+    """使用多執行緒抓取這組股票的即時價格"""
+    def _fetch_one(s):
+        try:
+            suffix = '.TW' if s['market'] == 'LISTED' else '.TWO'
+            symbol = f"{s['code']}{suffix}"
+            t = yf.Ticker(symbol)
+            # 抓取最近 1 天的 1 分鐘資料，取得最後一筆即時交易
+            hist = t.history(period='1d', interval='1m')
+            if not hist.empty:
+                latest = hist.iloc[-1]
+                # 從 Yahoo 資料抓取昨日收盤 (用於計算即時漲跌幅)
+                prev_close = t.info.get('previousClose', s['price'] / (1 + s['change_pct']/100))
+                current_price = round(latest['Close'], 2)
+                change_pct = round(((current_price - prev_close) / prev_close) * 100, 2)
+                return {
+                    'code': s['code'],
+                    'price': current_price,
+                    'change_pct': change_pct,
+                    'volume': int(latest['Volume']) if 'Volume' in latest else s['volume']
+                }
+        except:
+            pass
+        return None
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(_fetch_one, stocks))
+    
+    # 建立映射表
+    realtime_map = {r['code']: r for r in results if r}
+    for s in stocks:
+        if s['code'] in realtime_map:
+            s['price'] = realtime_map[s['code']]['price']
+            s['change_pct'] = realtime_map[s['code']]['change_pct']
+            # 選項：如果需要成交量也同步，可以放開
+            # s['volume'] = realtime_map[s['code']]['volume']
+    return stocks
+
 @app.route('/')
 def index():
     return render_template('index_v2.html')
 
 @app.route('/api/screen', methods=['POST'])
 def screen_stocks():
-    """股票篩選 API（從資料庫篩選）"""
+    """股票篩選 API（含即時價格同步）"""
     try:
         data = request.get_json()
-        
-        # 驗證輸入
         min_price = float(data.get('min_price', 10))
         max_price = float(data.get('max_price', 1000))
         min_market_cap_billion = float(data.get('min_market_cap', 0))
-        min_volume_lots = float(data.get('min_volume', 1000))  # 預設 1000 張
+        min_volume_lots = float(data.get('min_volume', 1000))
         enable_market_cap = data.get('enable_market_cap', False)
         gap_up_only = data.get('gap_up_only', False)
+
+        min_market_cap = min_market_cap_billion * 100_000_000 if enable_market_cap else 0
         
-        if min_price <= 0 or max_price <= 0:
-            return jsonify({'error': '股價必須大於 0'}), 400
-        
-        if min_price >= max_price:
-            return jsonify({'error': '最高股價必須大於最低股價'}), 400
-        
-        # 轉換市值
-        if enable_market_cap:
-            min_market_cap = min_market_cap_billion * 100_000_000
-        else:
-            min_market_cap = 0
-        
-        # 先抓取最新指數資料
-        print("正在抓取最新指數資料...")
         taiex_data = fetch_index_data('^TWII', '加權指數')
         otc_data = fetch_index_data('^TWOII', '上櫃指數')
         
-        # 從資料庫篩選（傳入指數漲幅）
-        print(f"篩選條件: 價格 {min_price}-{max_price}, 市值 >={min_market_cap_billion}億, 成交量 >={min_volume_lots}張, 開高={gap_up_only}")
-        print(f"指數漲幅: TAIEX {taiex_data['change_pct']:.2f}%, OTC {otc_data['change_pct']:.2f}%")
         results = filter_and_rank_stocks(
-            min_price, 
-            max_price, 
-            min_market_cap,
-            min_volume_lots,
-            gap_up_only,
-            taiex_data['change_pct'],
-            otc_data['change_pct']
+            min_price, max_price, min_market_cap, min_volume_lots,
+            gap_up_only, taiex_data['change_pct'], otc_data['change_pct']
         )
         
         if 'error' in results:
             return jsonify({'error': results['error']}), 500
         
-        # 轉換格式以符合前端需求
+        # --- 即時化關鍵步驟：校準前 30 名的價格 ---
+        top_candidates = results['listed'][:15] + results['otc'][:15]
+        if top_candidates:
+            print(f"正在對 {len(top_candidates)} 檔候選股進行即時價格校準...")
+            fetch_realtime_prices(top_candidates)
+
         def format_stock(s, type_name):
             return {
                 'symbol': f"{s['code']}.TW",
@@ -367,35 +388,14 @@ def screen_stocks():
 
         listed_stocks = [format_stock(s, 'LISTED') for s in results['listed']]
         otc_stocks = [format_stock(s, 'OTC') for s in results['otc']]
-        listed_all = [format_stock(s, 'LISTED') for s in results['listed_all']]
-        otc_all = [format_stock(s, 'OTC') for s in results['otc_all']]
         
         return jsonify({
             'success': True,
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'database_update_time': results['stats']['update_time'],
-            'filters': {
-                'min_price': min_price,
-                'max_price': max_price,
-                'min_market_cap': min_market_cap,
-                'min_market_cap_billion': min_market_cap_billion if enable_market_cap else 0,
-                'enable_market_cap': enable_market_cap,
-                'min_volume': min_volume_lots
-            },
-            'stats': {
-                'total_analyzed': results['stats']['total_analyzed'],
-                'total_filtered': results['stats']['total_filtered'],
-                'listed_outperformers': results['stats']['listed_outperformers'],
-                'otc_outperformers': results['stats']['otc_outperformers']
-            },
             'listed_stocks': listed_stocks,
             'otc_stocks': otc_stocks,
-            'listed_all': listed_all,
-            'otc_all': otc_all,
-            'indices': {
-                'taiex': taiex_data,
-                'otc': otc_data
-            }
+            'indices': {'taiex': taiex_data, 'otc': otc_data}
         })
         
     except ValueError as e:
@@ -589,50 +589,51 @@ def get_ai_recommendations_internal(min_price=10.0, max_price=1000.0, min_volume
                     
                 hist = calculate_technicals(hist)
                 latest = hist.iloc[-1]
+                
+                # --- 即時資訊修正 ---
+                # 用 Yahoo Finance 的實時數據更新，算出最精準的今日漲幅
+                prev_close = ticker.info.get('previousClose', stock['price'] / (1 + stock['change_pct']/100))
+                current_price = round(latest['Close'], 2)
+                current_change = round(((current_price - prev_close) / prev_close) * 100, 2)
+                current_alpha = current_change - (taiex['change_pct'] if stock['market'] == 'LISTED' else otc['change_pct'])
+
                 is_strong, strong_label, strong_count = calc_high_days(hist)
                 
-                price = latest['Close']
+                price = current_price
                 ma5 = latest['MA5']
                 ma20 = latest['MA20']
                 rsi = latest['RSI']
                 
-                reasons = [f"跑贏大盤 ({stock['alpha']:+.2f}%)"]
+                reasons = [f"跑贏大盤 ({current_alpha:+.2f}%)"]
                 score = 2
                 
+                # 評分邏輯 (加分制)
                 if strong_count >= 3:
-                    reasons.append(f"極強勢連過{strong_count}日")
                     score += 5
+                    reasons.append(strong_label)
                 elif strong_count >= 1:
-                    reasons.append(f"轉強過{strong_count}日")
                     score += 2
+                    reasons.append(strong_label)
                 
                 if price > ma5 > ma20:
-                    reasons.append("多頭排列")
                     score += 3
-                elif price > ma20:
-                    reasons.append("站上月線")
-                    score += 1
-                    
-                if 55 <= rsi <= 80:
-                    reasons.append(f"RSI強勢")
-                    score += 2
+                    reasons.append("均線多頭排列")
                 
-                vol_ma5 = hist['Volume'].rolling(window=5).mean().iloc[-1]
-                if latest['Volume'] > vol_ma5 * 1.5:
-                    reasons.append("量能放大")
+                if 55 <= rsi <= 80:
                     score += 2
+                    reasons.append(f"RSI強勢範疇 ({rsi:.1f})")
                 
                 if score >= 5:
                     recommendations.append({
                         'code': stock['code'],
                         'name': stock['name'],
-                        'price': round(price, 2),
-                        'change_pct': stock['change_pct'],
+                        'price': price,
+                        'change_pct': current_change,
+                        'alpha': current_alpha,
                         'volume': stock['volume'],
                         'market': stock['market'],
-                        'alpha': round(stock['alpha'], 2),
-                        'reasons': reasons,
-                        'score': score
+                        'score': score,
+                        'reasons': reasons
                     })
                     
             except Exception as e:
@@ -834,6 +835,12 @@ def strong_stocks():
             return jsonify({'error': base['error']}), 500
 
         candidates = base['listed'] + base['otc']   # 已經是優於大盤的股票
+        
+        # --- 即時化關鍵步驟：對強勢選股進行價格校準 ---
+        if candidates:
+            print(f"[強勢選股] 正在對 {len(candidates)} 檔股票進行即時價格校準...")
+            fetch_realtime_prices(candidates)
+
         print(f"[強勢選股] 候選股數: {len(candidates)}")
 
         if not candidates:
