@@ -24,8 +24,16 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>🔥 台股強勢股篩選器</h1>
-            <p class="subtitle">Taiwan Stock Screener - Outperforming the Market</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div style="flex-grow: 1;">
+                    <h1>🔥 台股強勢股篩選器</h1>
+                    <p class="subtitle">Taiwan Stock Screener - Outperforming the Market</p>
+                </div>
+                <button onclick="refreshIndices()" class="tab-button"
+                    style="background: #fff; color: #1a237e; border: 1px solid #1a237e; padding: 10px 18px; font-size: 0.9em; height: fit-content; margin-top: 10px;">
+                    🔄 手動更新大盤
+                </button>
+            </div>
         </header>
 
         <!-- Tab Navigation -->
@@ -128,11 +136,11 @@
         <!-- Stats -->
         <div class="stats" id="stats" style="display: none;">
             <div class="stat-item">
-                <span class="stat-label">分析股票</span>
+                <span class="stat-label">分析總數</span>
                 <span class="stat-value" id="total-analyzed">0</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">符合條件</span>
+                <span class="stat-label">符合門檻</span>
                 <span class="stat-value" id="total-filtered">0</span>
             </div>
             <div class="stat-item">
@@ -144,8 +152,17 @@
                 <span class="stat-value" id="otc-outperformers">0</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">查詢時間</span>
+                <span class="stat-label">最後更新</span>
                 <span class="stat-value" id="timestamp">--:--:--</span>
+            </div>
+        </div>
+
+        <!-- Filter Funnel Description (Visible on Results) -->
+        <div id="filter-funnel"
+            style="display:none; background:#f0f4f8; padding:12px; border-radius:8px; margin-bottom:15px; border-left:4px solid #1a237e; font-size:0.9em;">
+            <div style="font-weight:bold; color:#1a237e; margin-bottom:5px;">🔍 嚴格選股漏斗 (Strict Selection Funnel)</div>
+            <div id="funnel-text" style="color:#555;">
+                全部股票 &rarr; <b>優於大盤 (Alpha&gt;0)</b> &rarr; <b>強勢股 (站穩高點)</b> &rarr; <b>智慧推薦 (技術指標)</b>
             </div>
         </div>
 
@@ -333,6 +350,21 @@
             document.getElementById('otc-outperformers').textContent = data.stats.otc_outperformers;
             document.getElementById('timestamp').textContent = data.timestamp;
             statsDiv.style.display = 'flex';
+
+            // Update funnel info
+            const funnel = document.getElementById('filter-funnel');
+            const funnelText = document.getElementById('funnel-text');
+            funnel.style.display = 'block';
+
+            if (currentTab === 'outperformers') {
+                funnelText.innerHTML = '全部股票 &rarr; <b style="color:#c62828;">優於大盤 (Alpha > 0)</b> &rarr; 強勢股 &rarr; 智慧推薦';
+            } else if (currentTab === 'strong-stocks') {
+                funnelText.innerHTML = '全部股票 &rarr; 優於大盤 &rarr; <b style="color:#c62828;">強勢股 (站穩實體高點)</b> &rarr; 智慧推薦';
+            } else if (currentTab === 'smart-picks' || currentTab === 'ai-scan') {
+                funnelText.innerHTML = '全部股票 &rarr; 優於大盤 &rarr; 強勢股 &rarr; <b style="color:#c62828;">智慧推薦 (指標全多頭)</b>';
+            } else {
+                funnel.style.display = 'none';
+            }
 
             // Show tab navigation
             const tabNavigation = document.getElementById('tab-navigation');
@@ -751,15 +783,49 @@
             div.innerHTML = html;
         }
 
-        // Initialize default view
-        document.addEventListener('DOMContentLoaded', () => {
-            // Show tab navigation by default now that structure changed
+        // Initialize with default data
+        window.addEventListener('load', () => {
+            // Optional: Auto-load TAIEX on start
             document.getElementById('tab-navigation').style.display = 'flex';
 
             // Auto-load data on startup
             console.log("Auto-loading stock data...");
             filterStocks();
         });
+
+        // 手動更新大盤與同步邏輯
+        async function refreshIndices(event) { // Added 'event' parameter
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '⏳ 更新中...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/refresh_indices');
+                const data = await response.json();
+                if (data.success) {
+                    const idxPanel = document.getElementById('indices-panel');
+                    idxPanel.style.display = 'flex';
+
+                    document.getElementById('taiex-value').innerText = data.taiex.value.toLocaleString();
+                    const taiexChg = document.getElementById('taiex-change');
+                    taiexChg.innerText = `${data.taiex.change_pct}%`;
+                    taiexChg.className = 'index-change ' + (data.taiex.change_pct >= 0 ? 'up' : 'down');
+
+                    document.getElementById('otc-value').innerText = data.otc.value.toLocaleString();
+                    const otcChg = document.getElementById('otc-change');
+                    otcChg.innerText = `${data.otc.change_pct}%`;
+                    otcChg.className = 'index-change ' + (data.otc.change_pct >= 0 ? 'up' : 'down');
+
+                    alert('✅ 指數已更新！數據時間：' + data.timestamp);
+                }
+            } catch (e) {
+                alert('❌ 更新失敗：' + e.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
     <script src="{{ url_for('static', filename='search_charts.js') }}"></script>
 </body>
